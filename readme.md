@@ -312,3 +312,46 @@ group by teams.displayname, users.username
 | Чайхана | admin | 8 |
 | Чайхана | anastasia | 2 |
 | Чайхана | nikita | 108 |
+
+## отображение исходящие сообщение пользователя
+
+```
+select CASE
+           WHEN channels.displayname = '' THEN
+               (select u.username
+                from users u
+                        join channels on channels.id = posts.channelid
+                        join channelmembers on channelmembers.channelid = posts.channelid and channelmembers.userid = u.id
+                where u.id != posts.userid)
+           ELSE channels.displayname END                                                  as channel,
+       TO_CHAR(TO_TIMESTAMP(posts.createat / 1000), 'DD/MM/YYYY HH24:MI:SS')              as createat,
+       Case
+           when posts.updateat = posts.createat then null
+           else
+               TO_CHAR(TO_TIMESTAMP(posts.updateat / 1000), 'DD/MM/YYYY HH24:MI:SS') end  as updateat,
+       CASE
+           WHEN posts.deleteat = 0 THEN null
+           ELSE TO_CHAR(TO_TIMESTAMP(posts.deleteat / 1000), 'DD/MM/YYYY HH24:MI:SS') END AS deleteat,
+       posts.message,
+       CASE
+           WHEN posts.fileids = '[]' THEN null
+           ELSE posts.fileids END AS fileids,
+      CASE
+           WHEN posts.filenames = '[]' THEN null
+           ELSE posts.filenames END AS filenames
+from posts
+         join users on posts.userid = users.id
+         join channels on posts.channelid = channels.id
+where
+  posts.type = ''
+and
+    users.username = 'admin'
+```
+
+### пример 
+| channel | createat | updateat | deleteat | message | fileids | filenames |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Town Square | 16/07/2024 08:16:57 | null | null | Что-то пошло не так в потоке пересчета валют🎉 | null | null |
+| Town Square | 16/07/2024 08:33:22 | null | null | Что-то пошло не так в потоке пересчета валют🎉 | null | null |
+| Off-Topic | 17/09/2024 12:15:22 | null | null | hop | null | null |
+| alex | 10/10/2024 14:31:01 | null | null | Тест для личных сообщений. Кажется, тут напрямую никто никому не писал | null | null |
